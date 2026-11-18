@@ -211,7 +211,10 @@ def get_tasks():
 def check_answer():
     data = request.json or {}
     task_id = data.get("task_id")
-    user_answer = str(data.get("answer", "")).strip().lower().replace(",", ".")
+    
+    # Почистваме отговора на ученика (мах-ва интервали, малки букви, превръща запетая в точка и чисти долари)
+    user_raw = str(data.get("answer", "")).strip().lower().replace(",", ".")
+    user_answer = user_raw.replace("$", "").strip()
 
     conn = get_db_connection()
     task = conn.execute(
@@ -222,16 +225,23 @@ def check_answer():
     if not task:
         return jsonify({"error": "Задачата не е намерена"}), 404
 
-    correct_answer = task["correct_answer"].strip().lower().replace(",", ".")
-    is_correct = user_answer == correct_answer
+    # Почистваме и верния отговор от базата данни по същия начин
+    correct_raw = str(task["correct_answer"]).strip().lower().replace(",", ".")
+    correct_answer = correct_raw.replace("$", "").strip()
 
-    return jsonify(
-        {
-            "is_correct": is_correct,
-            "explanation": task["explanation"],
-            "correct_answer": task["correct_answer"] if not is_correct else None,
-        }
-    )
+    # Умна проверка: Опитваме се да ги сравним като числа (за да е еднакво 5 и 5.0)
+    is_correct = False
+    try:
+        if float(user_answer) == float(correct_answer):
+            is_correct = True
+    except ValueError:
+        # Ако не са числа (напр. са текст или формули), правим точно текстово сравнение
+        is_correct = user_answer == correct_answer
+
+    return jsonify({
+        "is_correct": is_correct,
+        "explanation": task["explanation"]
+    })
 
 
 # --- API ЗА АДМИН ПАНЕЛА ---
