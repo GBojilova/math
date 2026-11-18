@@ -365,7 +365,29 @@ def import_pdf():
 
         count = 0
         for line in lines:
-            if "=" in line or (
+            # Формат 1 (Нов): Условие | Верен отговор | Обяснение (по желание)
+            if "|" in line:
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) >= 2 and parts[0] and parts[1]:
+                    question = parts[0].replace("___", "?").replace("__", "?")
+                    correct_answer = parts[1]
+                    explanation = (
+                        parts[2]
+                        if len(parts) >= 3 and parts[2]
+                        else "Няма въведено обяснение."
+                    )
+
+                    conn.execute(
+                        """
+                        INSERT INTO tasks (grade, topic, question, correct_answer, explanation)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (grade, topic, question, correct_answer, explanation),
+                    )
+                    count += 1
+
+            # Формат 2 (Резервен): Само условие със знак '=' (слага '0' за отговор)
+            elif "=" in line or (
                 len(line) > 3 and line[0].isdigit() and "." in line[:4]
             ):
                 clean_question = line.replace("___", "?").replace("__", "?")
@@ -379,7 +401,7 @@ def import_pdf():
                         topic,
                         clean_question,
                         "0",
-                        "Импортирано от PDF (моля, задайте верен отговор).",
+                        "Импортирано без отговор (моля, редактирайте).",
                     ),
                 )
                 count += 1
