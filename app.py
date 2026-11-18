@@ -214,7 +214,7 @@ def check_answer():
     
     # Почистваме отговора на ученика
     user_raw = str(data.get("answer", "")).strip().lower().replace(",", ".")
-    user_answer = user_raw.replace("$", "").strip()
+    user_answer = user_raw.replace("$", "").replace("x", "").replace("=", "").strip()
 
     conn = get_db_connection()
     task = conn.execute(
@@ -225,20 +225,18 @@ def check_answer():
     if not task:
         return jsonify({"error": "Задачата не е намерена"}), 404
 
-    # Почистваме и верния отговор от базата данни
+    # Почистваме верния отговор от базата (мах-ваме "x =", долари и интервали)
     correct_raw = str(task["correct_answer"]).strip().lower().replace(",", ".")
-    correct_answer = correct_raw.replace("$", "").strip()
+    correct_clean = correct_raw.replace("x", "").replace("=", "").replace("$", "").strip()
 
-    # Умна проверка: Опитваме се да ги сравним като числа (за да е еднакво 5 и 5.0)
+    # Сравняваме като числа или като текст
     is_correct = False
     try:
-        if float(user_answer) == float(correct_answer):
+        if float(user_answer) == float(correct_clean):
             is_correct = True
     except ValueError:
-        # Ако не са числа, правим текстово сравнение
-        is_correct = user_answer == correct_answer
+        is_correct = user_answer == correct_clean
 
-    # Връщаме всички възможни ключове, за да покрием каквото и да търси вашият JavaScript
     return jsonify({
         "is_correct": is_correct,
         "correct": is_correct,
@@ -246,7 +244,6 @@ def check_answer():
         "correct_answer": task["correct_answer"],
         "explanation": task["explanation"]
     })
-
 
 # --- API ЗА АДМИН ПАНЕЛА ---
 @app.route("/api/admin/categories", methods=["GET", "POST", "DELETE"])
