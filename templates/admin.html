@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ панел - Управление</title>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 50%, #fef9c3 100%);
+            color: #1e293b;
+        }
+        .wrapper { max-width: 820px; margin: 20px auto; }
+        .top-bar { margin-bottom: 20px; }
+        .top-bar a {
+            color: #0284c7;
+            text-decoration: none;
+            font-weight: bold;
+            background: rgba(255,255,255,0.85);
+            padding: 10px 16px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .box {
+            background: #ffffff;
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            margin-bottom: 25px;
+        }
+        h2 { margin-top: 0; color: #0f172a; font-size: 1.35em; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        label { display: block; margin-top: 14px; font-weight: 600; color: #334155; }
+        input[type="text"], input[type="password"], input[type="file"], textarea, select {
+            width: 100%;
+            padding: 11px;
+            margin-top: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 1em;
+            background: #f8fafc;
+        }
+        textarea { height: 75px; resize: vertical; }
+        button {
+            margin-top: 16px;
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        button:hover { opacity: 0.92; }
+        .btn-delete { background-color: #ef4444; padding: 6px 12px; font-size: 0.85em; margin-top: 0; }
+        .item-row {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 12px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+        .task-row-group {
+            border: 2px dashed #cbd5e1;
+            padding: 18px;
+            margin-top: 16px;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+        #admin-panel { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="top-bar">
+        <a href="/">&larr; Назад към помагалото за ученици</a>
+    </div>
+
+    <!-- Екран за парола -->
+    <div class="box" id="login-box" style="max-width: 400px; margin: 60px auto;">
+        <h2>Администраторски достъп</h2>
+        <label>Въведете парола:</label>
+        <input type="password" id="admin-pass" placeholder="Парола (по подразбиране: admin123)">
+        <button onclick="login()" style="width: 100%;">Вход</button>
+    </div>
+
+    <!-- Главен админ панел -->
+    <div id="admin-panel">
+        
+        <!-- Управление на класове и теми -->
+        <div class="box">
+            <h2>1. Добавяне на Клас и Тема</h2>
+            <label>Клас:</label>
+            <input type="text" id="cat-grade" placeholder="напр. 1. клас">
+            <label>Тема / Раздел:</label>
+            <input type="text" id="cat-topic" placeholder="напр. Събиране и изваждане до 20">
+            <button onclick="addCategory()">Добави категория</button>
+
+            <h3 style="margin-top: 25px; font-size: 1.1em;">Съществуващи категории</h3>
+            <div id="categories-list">Зареждане...</div>
+        </div>
+
+        <!-- Множествено добавяне на задачи -->
+        <div class="box">
+            <h2>2. Добавяне на задачи (една или няколко наведнъж)</h2>
+            <label>Изберете Клас и Тема:</label>
+            <select id="bulk-cat-select"></select>
+
+            <div id="task-forms-container"></div>
+
+            <button onclick="addNewTaskRowForm()" style="background-color: #64748b;">+ Добави още една задача</button>
+            <button onclick="saveAllTasks()" style="background-color: #16a34a; display: block; width: 100%; margin-top: 15px;">Запази въведените задачи</button>
+        </div>
+
+        <!-- Импорт от PDF файл -->
+        <div class="box" style="background: #f0f9ff; border: 1px solid #bae6fd;">
+            <h2>3. Импорт на задачи от PDF файл</h2>
+            <label>Клас за задачите:</label>
+            <input type="text" id="pdf-grade" value="1. клас" placeholder="напр. 1. клас">
+            
+            <label>Тема за задачите:</label>
+            <input type="text" id="pdf-topic" value="Действия с числа" placeholder="напр. Действия с числа">
+            
+            <label>Изберете PDF файл:</label>
+            <input type="file" id="pdf-file-input" accept=".pdf">
+            
+            <button onclick="uploadPdf()" style="background-color: #0284c7;">Качи и импортирай PDF</button>
+        </div>
+
+        <!-- Всички задачи -->
+        <div class="box">
+            <h2>4. Всички задачи в базата</h2>
+            <div id="tasks-list">Зареждане...</div>
+        </div>
+
+        <!-- Смяна на парола -->
+        <div class="box">
+            <h2>5. Смяна на администраторската парола</h2>
+            <label>Стара парола:</label>
+            <input type="password" id="old-pass" placeholder="Стара парола">
+            <label>Нова парола:</label>
+            <input type="password" id="new-pass" placeholder="Нова парола">
+            <button onclick="changePassword()">Промени паролата</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.getElementById('admin-pass').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') login();
+    });
+
+    async function login() {
+        const password = document.getElementById('admin-pass').value;
+        if (!password) {
+            alert('Моля, въведете парола!');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                loadAdminData();
+            } else {
+                alert(data.error || 'Грешна парола!');
+            }
+        } catch (err) {
+            alert('Грешка при свързване със сървъра.');
+        }
+    }
+
+    async function changePassword() {
+        const old_password = document.getElementById('old-pass').value;
+        const new_password = document.getElementById('new-pass').value;
+
+        const res = await fetch('/api/admin/change-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ old_password, new_password })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            document.getElementById('old-pass').value = '';
+            document.getElementById('new-pass').value = '';
+        } else {
+            alert(data.error);
+        }
+    }
+
+    function loadAdminData() {
+        loadCategories();
+        loadTasks();
+        initTaskForms();
+    }
+
+    async function loadCategories() {
+        const res = await fetch('/api/admin/categories');
+        const categories = await res.json();
+        
+        const listContainer = document.getElementById('categories-list');
+        if (categories.length === 0) {
+            listContainer.innerHTML = '<p style="color:#64748b;">Няма добавени категории.</p>';
+        } else {
+            listContainer.innerHTML = categories.map(c => `
+                <div class="item-row">
+                    <span><strong>${c.grade}</strong> &bull; ${c.topic}</span>
+                    <button class="btn-delete" onclick="deleteCategory(${c.id})">Изтрий</button>
+                </div>
+            `).join('');
+        }
+
+        const selectContainer = document.getElementById('bulk-cat-select');
+        selectContainer.innerHTML = categories.map(c => `
+            <option value="${c.grade}___${c.topic}">${c.grade} - ${c.topic}</option>
+        `).join('');
+    }
+
+    async function addCategory() {
+        const grade = document.getElementById('cat-grade').value;
+        const topic = document.getElementById('cat-topic').value;
+        const res = await fetch('/api/admin/categories', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({grade, topic})
+        });
+        if (res.ok) {
+            document.getElementById('cat-grade').value = '';
+            document.getElementById('cat-topic').value = '';
+            loadCategories();
+        } else {
+            const err = await res.json();
+            alert(err.error);
+        }
+    }
+
+    async function deleteCategory(id) {
+        if (!confirm('Сигурни ли сте, че искате да изтриете тази категория?')) return;
+        await fetch(`/api/admin/categories?id=${id}`, {method: 'DELETE'});
+        loadCategories();
+    }
+
+    function initTaskForms() {
+        const container = document.getElementById('task-forms-container');
+        container.innerHTML = '';
+        addNewTaskRowForm();
+    }
+
+    function addNewTaskRowForm() {
+        const container = document.getElementById('task-forms-container');
+        const index = container.children.length + 1;
+
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'task-row-group';
+        rowDiv.innerHTML = `
+            <strong>Задача #${index}</strong>
+            <label>Условие на задачата:</label>
+            <textarea class="row-question" placeholder="напр. Колко е 9 + 6?"></textarea>
+            <label>Верен отговор:</label>
+            <input type="text" class="row-answer" placeholder="напр. 15">
+            <label>Обяснение (по желание):</label>
+            <textarea class="row-explanation" placeholder="напр. 9 + 1 = 10 и 10 + 5 = 15"></textarea>
+            <button class="btn-delete" style="margin-top:10px;" onclick="this.parentElement.remove()">Премахни</button>
+        `;
+        container.appendChild(rowDiv);
+    }
+
+    async function saveAllTasks() {
+        const catValue = document.getElementById('bulk-cat-select').value;
+        if (!catValue) {
+            alert('Първо добавете и изберете клас и тема!');
+            return;
+        }
+        const [grade, topic] = catValue.split('___');
+        const rows = document.querySelectorAll('.task-row-group');
+        
+        let tasksList = [];
+        rows.forEach(r => {
+            const question = r.querySelector('.row-question').value.trim();
+            const correct_answer = r.querySelector('.row-answer').value.trim();
+            const explanation = r.querySelector('.row-explanation').value.trim();
+
+            if (question && correct_answer) {
+                tasksList.push({ grade, topic, question, correct_answer, explanation });
+            }
+        });
+
+        if (tasksList.length === 0) {
+            alert('Попълнете поне условие и верен отговор!');
+            return;
+        }
+
+        const res = await fetch('/api/admin/tasks/bulk', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ tasks: tasksList })
+        });
+
+        if (res.ok) {
+            alert('Задачите бяха запазени успешно!');
+            initTaskForms();
+            loadTasks();
+        } else {
+            alert('Възникна грешка при записа.');
+        }
+    }
+
+    async function uploadPdf() {
+        const fileInput = document.getElementById('pdf-file-input');
+        const grade = document.getElementById('pdf-grade').value.trim();
+        const topic = document.getElementById('pdf-topic').value.trim();
+
+        if (fileInput.files.length === 0) {
+            alert('Моля, изберете PDF файл първо!');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('pdf_file', fileInput.files[0]);
+        formData.append('grade', grade);
+        formData.append('topic', topic);
+
+        try {
+            const res = await fetch('/api/admin/import-pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message);
+                fileInput.value = '';
+                loadCategories();
+                loadTasks();
+            } else {
+                alert(data.error || 'Грешка при импортиране на PDF.');
+            }
+        } catch (err) {
+            alert('Възникна грешка при качването на файла.');
+        }
+    }
+
+    async function loadTasks() {
+        const res = await fetch('/api/admin/tasks');
+        const tasks = await res.json();
+        const listEl = document.getElementById('tasks-list');
+        if (tasks.length === 0) {
+            listEl.innerHTML = '<p style="color:#64748b;">Няма добавени задачи.</p>';
+            return;
+        }
+        listEl.innerHTML = tasks.map(t => `
+            <div class="item-row" style="align-items: flex-start;">
+                <div>
+                    <small style="color:#0284c7; font-weight:bold;">${t.grade} &bull; ${t.topic}</small>
+                    <div style="margin: 4px 0;"><strong>Условие:</strong> ${t.question}</div>
+                    <div><strong>Отговор:</strong> <code>${t.correct_answer}</code></div>
+                </div>
+                <button class="btn-delete" onclick="deleteTask(${t.id})">Изтрий</button>
+            </div>
+        `).join('');
+        if(window.MathJax) MathJax.typesetPromise();
+    }
+
+    async function deleteTask(id) {
+        if (!confirm('Сигурни ли сте, че искате да изтриете тази задача?')) return;
+        await fetch(`/api/admin/tasks?id=${id}`, {method: 'DELETE'});
+        loadTasks();
+    }
+</script>
+
+</body>
+</html>
