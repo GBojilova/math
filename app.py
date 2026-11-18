@@ -212,7 +212,7 @@ def check_answer():
     data = request.json or {}
     task_id = data.get("task_id")
     
-    # Почистваме отговора на ученика (мах-ва интервали, малки букви, превръща запетая в точка и чисти долари)
+    # Почистваме отговора на ученика
     user_raw = str(data.get("answer", "")).strip().lower().replace(",", ".")
     user_answer = user_raw.replace("$", "").strip()
 
@@ -225,7 +225,7 @@ def check_answer():
     if not task:
         return jsonify({"error": "Задачата не е намерена"}), 404
 
-    # Почистваме и верния отговор от базата данни по същия начин
+    # Почистваме и верния отговор от базата данни
     correct_raw = str(task["correct_answer"]).strip().lower().replace(",", ".")
     correct_answer = correct_raw.replace("$", "").strip()
 
@@ -235,9 +235,10 @@ def check_answer():
         if float(user_answer) == float(correct_answer):
             is_correct = True
     except ValueError:
-        # Ако не са числа (напр. са текст или формули), правим точно текстово сравнение
+        # Ако не са числа, правим текстово сравнение
         is_correct = user_answer == correct_answer
 
+    # Ето това липсваше в предишния отговор и даваше undefined:
     return jsonify({
         "is_correct": is_correct,
         "explanation": task["explanation"]
