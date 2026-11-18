@@ -238,9 +238,12 @@ def check_answer():
         # Ако не са числа, правим текстово сравнение
         is_correct = user_answer == correct_answer
 
-    # Ето това липсваше в предишния отговор и даваше undefined:
+    # Връщаме всички възможни ключове, за да покрием каквото и да търси вашият JavaScript
     return jsonify({
         "is_correct": is_correct,
+        "correct": is_correct,
+        "success": is_correct,
+        "correct_answer": task["correct_answer"],
         "explanation": task["explanation"]
     })
 
