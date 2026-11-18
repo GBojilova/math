@@ -360,24 +360,72 @@
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 <!-- Автоматично форматиране на степени (напр. 3x^2 -> $3x^2$) -->
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    // Намерете всички елементи, където се изписват въпросите (променете селектора според вашия HTML клас, напр. .question)
-    const questionElements = document.querySelectorAll('.task-question, td, span, p');
-    
-    questionElements.forEach(el => {
-      let text = el.innerHTML;
-      // Ако текстът съдържа знак за степен (^) и все още няма обграждащи долари
-      if (text.includes('^') && !text.includes('$')) {
-        // Обграждаме съответния израз в долари за MathJax
-        el.innerHTML = '$$' + text.trim() + '$$';
-      }
-    });
 
-    // Презареждаме MathJax, за да изрисува новите формули
-    if (window.MathJax && typeof MathJax.typeset === 'function') {
-      MathJax.typeset();
+    <script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']]
     }
+  };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- 2. Автоматичен наблюдател за нови задачи със степени (^) -->
+<script>
+  function formatMathInElement(el) {
+    // Обхождаме всички текстови възли вътре в елемента
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToReplace = [];
+    let node;
+
+    while ((node = walker.nextNode())) {
+      const parentTag = node.parentNode ? node.parentNode.tagName : '';
+      // Пропускаме скриптове, стилове, текстови полета и вече обработени MathJax елементи
+      if (['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT'].includes(parentTag)) continue;
+      if (node.parentNode && node.parentNode.closest('mjx-container')) continue;
+
+      const text = node.nodeValue;
+      // Ако текстът съдържа степен (^) и няма долари ($)
+      if (text && text.includes('^') && !text.includes('$')) {
+        nodesToReplace.push(node);
+      }
+    }
+
+    if (nodesToReplace.length > 0) {
+      nodesToReplace.forEach(textNode => {
+        const span = document.createElement('span');
+        // Обграждаме целия ред в единични долари за MathJax
+        span.textContent = '$' + textNode.nodeValue.trim() + '$';
+        textNode.parentNode.replaceChild(span, textNode);
+      });
+
+      // Накарваме MathJax да изрисува новите формули веднага
+      if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([el]).catch(err => console.log(err));
+      }
+    }
+  }
+
+  // Наблюдател, който следи за всяка промяна на екрана (когато се зареди нова задача)
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) { // Ако е HTML елемент
+          formatMathInElement(node);
+        } else if (node.nodeType === 3 && node.parentNode) { // Ако се е сменил само текстът
+          formatMathInElement(node.parentNode);
+        }
+      });
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    formatMathInElement(document.body);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
   });
 </script>
 </body>
